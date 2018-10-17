@@ -6,30 +6,15 @@ from h2o.estimators.xgboost import *
 from tests import pyunit_utils
 
 '''
-PUBDEV-5777: set H2O XGBoost default to be the same as native XGBoost.
+PUBDEV-5777: enable H2OXGBoost and native XGBoost comparison.
 
-1. We will change the XGBoost parameter to be the same as native XGBoost.
-2. We will add new python API into h2o wheel to make functions that will adapted H2O frames to panda frames used
-by native XGBoost.  Users will need to call this function before calling native XGBoost.
+To ensure that H2OXGBoost and native XGBoost performance provide the same result, we propose to do the following:
+1. run H2OXGBoost with H2OFrame and parameter setting, save model and result
+2. Call Python API to convert H2OFrame to XGBoost frame and H2OXGBoost parameter to XGBoost parameters.
+3. Run native XGBoost with data frame and parameters from 2.  Should get the same result as in 1.
 
-booster default to gbtree
-silent default to 0
-nthread default to maximum number of threads available
-disable_default_eval_metric default to 0
-num_pbuffer set by XGBoost
-num_feature set by XGBoost
-eta/learning_rate default to 0.3
-gamma/min_split_loss default to 0
-max_depth default to 6
-min_child_weight default to 1
-max_delta_step default to 0
-subsample default to 1
-colsample_bytree default to 1
-colsample_bylevel default to 1
-lambda/reg_lambda default to 1
-alpha/reg_alpha default to 0
 '''
-def comparison_test_dense():
+def comparison_test():
     assert H2OXGBoostEstimator.available() is True
     ret = h2o.cluster()
     if len(ret.nodes) == 1:
@@ -97,6 +82,6 @@ def comparison_test_dense():
         print("********  Test skipped.  This test cannot be performed in multinode environment.")
 
 if __name__ == "__main__":
-    pyunit_utils.standalone_test(comparison_test_dense)
+    pyunit_utils.standalone_test(comparison_test)
 else:
-    comparison_test_dense()
+    comparison_test()
