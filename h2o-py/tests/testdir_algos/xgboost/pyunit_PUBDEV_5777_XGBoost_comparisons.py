@@ -13,6 +13,55 @@ To ensure that H2OXGBoost and native XGBoost performance provide the same result
 2. Call Python API to convert H2OFrame to XGBoost frame and H2OXGBoost parameter to XGBoost parameters.
 3. Run native XGBoost with data frame and parameters from 2.  Should get the same result as in 1.
 
+Parameters in native XGBoost:
+booster defaul to gbtree
+silent default to 0
+nthread default to maximum number of threads available if not specified
+disable_default_eval_metric default to 0
+num_pbuffer automatically set
+num_feature automatically set
+eta/learning_rate default to 0.3
+max_depth default to 6
+min_child_weight default to 1
+max_delta_step default to 0
+subsample default to 1
+colsample_bytree default to 1
+colsample_by_level default to 1
+lambda/reg_lambda default to 1
+alpha/reg_alpha default to 0
+tree_method default to auto
+sketch_eps default to 0.03
+scale_pos_weight default to 1
+updater default to grow_colmaker, prune
+refresh_leaf default to 1
+process_type default to default
+grow_policy default depthwise
+max_leaves default to 0
+max_bin default to 256
+predictor default to cpu_predictor
+
+Addition ones for DART booster
+smaple_type default to uniform
+normalize_type default to tree
+rate_drop default to 0.0
+one_drop default to 0.0
+skip_drop default to 0.0
+
+For Linear Booster
+lambda/reg_lambda default to 0
+alpha/reg_alpha default to 0
+updater default to shotgun
+feature_selector default to cyclic
+top_k default to 0
+
+Parameters for Tweedie Regression objective=reg:tweedie
+tweedie_variance_power default to 1.5
+
+learning Task parameters:
+objective default to reg:linear
+base_score default to 0.5
+eval_metric default according to objective
+seed default to 0
 '''
 def comparison_test():
     assert H2OXGBoostEstimator.available() is True
