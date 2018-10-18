@@ -63,7 +63,7 @@ test.parseSkippedColumns<- function() {
   # assertCorrectSkipColumns(fileName, fullFrameR, skip20Per, TRUE) # test importFile
   # assertCorrectSkipColumns(fileName, fullFrameR, skip20Per, FALSE) # test uploadFile
   
-  # skip 90% of the columns randomly
+  # skip 99% of the columns randomly
   print("Testing skipping 99% of columns")
   assertCorrectSkipColumns(fileName, fullFrameR, skip99Per, TRUE) # test importFile
   assertCorrectSkipColumns(fileName, fullFrameR, skip99Per, FALSE) # test uploadFile

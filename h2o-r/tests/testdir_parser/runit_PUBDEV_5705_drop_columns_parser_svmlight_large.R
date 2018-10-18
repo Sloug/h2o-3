@@ -4,11 +4,10 @@ setwd(normalizePath(dirname(
 source("../../scripts/h2o-r-test-setup.R")
 
 # Tests parsing with skipped columns
-test.parseSkippedColumns <- function() {
+test.parseSkippedColumnsSVMLight <- function() {
   f1svn <-
     h2o.importFile(locate("bigdata/laptop/parser/anSVMFile.csv"))
   svmfilepath <- locate("bigdata/laptop/parser/anSVMFile.svm")
-  browser(0)
   
   # test skipped columns for h2o.importFile
   e <-
@@ -51,4 +50,4 @@ assertCorrectSkipColumns <-
     compareFramesSVM(f1R, wholeFrame) # compare return svm parser frame with original frame
    }
 
-doTest("Test svmlight Parse with skipped columns", test.parseSkippedColumns)
+doTest("Test svmlight Parse with skipped columns", parseSkippedColumnsSVMLight)

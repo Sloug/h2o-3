@@ -3492,7 +3492,7 @@ def compare_frames_local_svm(f1, f2, prob=0.5, tol=1e-6, returnResult=False):
 # frame compare with NAs in column
 def compare_frames_local_onecolumn_NA(f1, f2, prob=0.5, tol=1e-6, returnResult=False):
     if (f1.types[f1.names[0]] == u'time'):   # we have to divide by 1000 before converting back and forth between ms and time format
-        tol = 1.0
+        tol = 10
 
     temp1 = f1.as_data_frame(use_pandas=False)
     temp2 = f2.as_data_frame(use_pandas=False)
