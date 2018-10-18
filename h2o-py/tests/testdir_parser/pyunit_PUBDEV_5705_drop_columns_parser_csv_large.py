@@ -4,10 +4,9 @@ sys.path.insert(1,"../../")
 import h2o
 from tests import pyunit_utils
 import os
-import pandas as pd
 import random
 
-def import_folder():
+def test_csv_parser_column_skip():
   # generate a big frame with all datatypes and save it to csv.  Load it back with different skipped_columns settings
   nrow = 10000
   ncol = 100
@@ -88,6 +87,6 @@ def checkCorrectSkips(originalFullFrame, csvfile, skipped_columns):
 
 
 if __name__ == "__main__":
-  pyunit_utils.standalone_test(import_folder)
+  pyunit_utils.standalone_test(test_csv_parser_column_skip)
 else:
-  import_folder()
+  test_csv_parser_column_skip()

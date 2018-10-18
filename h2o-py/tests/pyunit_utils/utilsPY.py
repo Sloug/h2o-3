@@ -45,6 +45,32 @@ import math
 from random import shuffle
 import scipy.special
 from h2o.utils.typechecks import assert_is_type
+import datetime
+import time # needed to randomly generate time
+import uuid # call uuid.uuid4() to generate unique uuid numbers
+
+def gen_random_uuid(numberUUID):
+    uuidVec = numberUUID*[None]
+
+    for uindex in range(numberUUID):
+        uuidVec[uindex] = uuid.uuid4()
+    return uuidVec
+
+def gen_random_time(numberTimes, maxtime= datetime.datetime(2080, 8,6,8,14,59), mintime=datetime.datetime(1980, 8,6,6,14,59)):
+    '''
+    Simple method that I shameless copied from the internet.
+    :param numberTimes:
+    :param maxtime:
+    :param mintime:
+    :return:
+    '''
+    mintime_ts = int(time.mktime(mintime.timetuple()))
+    maxtime_ts = int(time.mktime(maxtime.timetuple()))
+    randomTimes = numberTimes*[None]
+    for tindex in range(numberTimes):
+        temptime = random.randint(mintime_ts, maxtime_ts)
+        randomTimes[tindex] = datetime.datetime.fromtimestamp(temptimes)
+    return randomTimes
 
 
 def check_models(model1, model2, use_cross_validation=False, op='e'):
@@ -3402,6 +3428,15 @@ def compute_frame_diff(f1, f2):
     return frameDiff
 
 def compare_frames_local(f1, f2, prob=0.5, tol=1e-6, returnResult=False):
+    '''
+    Compare two h2o frames and make sure they are equal.  However, we do not compare uuid column at this point
+    :param f1:
+    :param f2:
+    :param prob:
+    :param tol:
+    :param returnResult:
+    :return:
+    '''
     assert (f1.nrow==f2.nrow) and (f1.ncol==f2.ncol), "The two frames are of different sizes."
     typeDict = f1.types
     frameNames = f1.names
@@ -3410,6 +3445,8 @@ def compare_frames_local(f1, f2, prob=0.5, tol=1e-6, returnResult=False):
             compare_frames_local_onecolumn_NA_enum(f1[colInd], f2[colInd], prob=prob, tol=tol, returnResult=returnResult)
         elif (typeDict[frameNames[colInd]]==u'string'):
             compare_frames_local_onecolumn_NA_string(f1[colInd], f2[colInd], prob=prob, returnResult=returnResult)
+        elif (typeDict[frameNames[colInd]]==u'uuid'):
+            continue    # do nothing here
         else:
             compare_frames_local_onecolumn_NA(f1[colInd], f2[colInd], prob=prob, tol=tol, returnResult=returnResult)
 
@@ -3454,6 +3491,9 @@ def compare_frames_local_svm(f1, f2, prob=0.5, tol=1e-6, returnResult=False):
 
 # frame compare with NAs in column
 def compare_frames_local_onecolumn_NA(f1, f2, prob=0.5, tol=1e-6, returnResult=False):
+    if (f1.types[f1.names[0]] == u'time'):   # we have to divide by 1000 before converting back and forth between ms and time format
+        tol = 1.0
+
     temp1 = f1.as_data_frame(use_pandas=False)
     temp2 = f2.as_data_frame(use_pandas=False)
     assert (f1.nrow==f2.nrow) and (f1.ncol==f2.ncol), "The two frames are of different sizes."
@@ -3477,7 +3517,7 @@ def compare_frames_local_onecolumn_NA(f1, f2, prob=0.5, tol=1e-6, returnResult=F
                             return False
                     else:
                         assert diff<=tol, "Failed frame values check at row {2} and column {3}! frame1 value: {0}, frame2 value: " \
-                                      "{1}".format(v1, v2, rowInd, colInd)
+                                      "{1} and the difference/max(v1,v2) is {4}.  Column type is {5}".format(v1, v2, rowInd, colInd, diff, f1.types)
     if returnResult:
         return True
 
@@ -3998,3 +4038,67 @@ def write_H2OFrame_2_SVMLight(filename, h2oFrame):
         fwriteFile.write(writeWords)
         fwriteFile.write('\n')
     fwriteFile.close()
+
+def write_H2OFrame_2_ARFF(filenameWithPath, filename, h2oFrame, uuidVecs, uuidNames):
+    '''
+    This function will write a H2OFrame into arff format and save it to a text file in ARFF format.
+    :param filename:
+    :param h2oFrame:
+    :return:
+    '''
+
+    fwriteFile = open(filenameWithPath, 'w')
+    nrow = h2oFrame.nrow
+
+    # write the arff headers here
+    writeWords = "@RELATION "+filename+'\n\n'
+    fwriteFile.write(writeWords)
+
+    typesDict = h2oFrame.types
+    colnames = h2oFrame.names
+    uuidtypes = len(uuidNames)*["UUID"]
+
+    for cname in colnames:
+        writeWords = "@ATTRIBUTE "+cname
+
+        if typesDict[cname]==u'int':
+            writeWords = writeWords + " integer"
+        elif typesDict[cname]==u'time':
+            writeWords = writeWords + " date"
+        else:
+            writeWords = writeWords + " "+typesDict[cname]
+        fwriteFile.write(writeWords)
+        fwriteFile.write('\n')
+
+    for cindex in range(len(uuidNames)):
+        writeWords = "@ATTRIBUTE " +uuidNames[cindex]+" uuid"
+        fwriteFile.write(writeWords)
+        fwriteFile.write('\n')
+    fwriteFile.write("\n@DATA\n")
+
+    # write the arff body as csv
+    fdataframe = h2oFrame.as_data_frame(use_pandas=False)
+
+    for rowindex in range(1,nrow+1):
+        writeWords = ""
+        for cindex in range(h2oFrame.ncol):
+            if len(fdataframe[rowindex][cindex])>0:
+                if typesDict[colnames[cindex]]==u'time':
+                    writeWords = writeWords+\
+                                 str(datetime.datetime.fromtimestamp(float(fdataframe[rowindex][cindex])/1000.0))+","
+                elif typesDict[colnames[cindex]] in [u'enum', u'string']:
+                    writeWords=writeWords+fdataframe[rowindex][cindex]+","
+                else:
+                    writeWords=writeWords+fdataframe[rowindex][cindex]+","
+            else:
+                writeWords = writeWords + ","
+
+        # process the uuid ones
+        for cindex in range(len(uuidVecs)-1):
+            writeWords=writeWords+str(uuidVecs[cindex][rowindex-1])+","
+        writeWords=writeWords+str(uuidVecs[-1][rowindex-1])+'\n'
+        fwriteFile.write(writeWords)
+    fwriteFile.close()
+
+
+
