@@ -1,9 +1,9 @@
 package hex.genmodel;
 
 import hex.ModelCategory;
-import sun.awt.image.ImageWatched;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,13 +12,13 @@ public class MojoPipelineWriter extends AbstractMojoWriter {
 
   private Map<String, MojoModel> _models;
   private Map<String, String> _inputMapping;
-  private MojoModel _finalModel;
+  private String _mainModelAlias;
 
-  public MojoPipelineWriter(Map<String, MojoModel> models, Map<String, String> inputMapping, MojoModel finalModel) {
-    super(makePipelineDescriptor(models, inputMapping, finalModel));
+  public MojoPipelineWriter(Map<String, MojoModel> models, Map<String, String> inputMapping, String mainModelAlias) {
+    super(makePipelineDescriptor(models, inputMapping, mainModelAlias));
     _models = models;
     _inputMapping = inputMapping;
-    _finalModel = finalModel;
+    _mainModelAlias = mainModelAlias;
   }
 
   @Override
@@ -28,32 +28,41 @@ public class MojoPipelineWriter extends AbstractMojoWriter {
 
   @Override
   protected void writeModelData() throws IOException {
-    writekv("submodel_count", _models.size() + 1);
+    writekv("submodel_count", _models.size());
     int modelNum = 0;
     for (Map.Entry<String, MojoModel> model : _models.entrySet()) {
       writekv("submodel_key_" + modelNum, model.getKey());
       writekv("submodel_dir_" + modelNum, "models/" + model.getKey() + "/");
       modelNum++;
     }
-    writekv("submodel_key_" + modelNum, "final_model");
-    writekv("submodel_dir_" + modelNum, "final_model/");
+    writekv("main_model", _mainModelAlias);
   }
 
   private static MojoPipelineDescriptor makePipelineDescriptor(
-          Map<String, MojoModel> models, Map<String, String> inputMapping, MojoModel finalModel) {
+          Map<String, MojoModel> models, Map<String, String> inputMapping, String mainModelAlias) {
+    MojoModel finalModel = models.get(mainModelAlias);
+    if (finalModel == null) {
+      throw new IllegalArgumentException("Main model is missing. There is no model with alias '" + mainModelAlias + "'.");
+    }
     LinkedHashMap<String, String[]> schema = deriveInputSchema(models, inputMapping, finalModel);
     return new MojoPipelineDescriptor(schema, finalModel);
   }
 
   private static LinkedHashMap<String, String[]> deriveInputSchema(
-          Map<String, MojoModel> models, Map<String, String> inputMapping, MojoModel finalModel) {
+          Map<String, MojoModel> allModels, Map<String, String> inputMapping, MojoModel finalModel) {
     LinkedHashMap<String, String[]> schema = new LinkedHashMap<>();
 
-    for (MojoModel model : models.values()) {
+    for (MojoModel model : allModels.values()) {
+      if (model == finalModel) {
+        continue;
+      }
       for (int i = 0; i < model.nfeatures(); i++) {
         String fName = model._names[i];
         if (schema.containsKey(fName)) { // make sure the domain matches
-          // TODO
+          String[] domain = schema.get(fName);
+          if (! Arrays.equals(domain, model._domains[i])) {
+            throw new IllegalStateException("Domains of column '" + fName + "' differ.");
+          }
         } else {
           schema.put(fName, model._domains[i]);
         }
@@ -120,7 +129,7 @@ public class MojoPipelineWriter extends AbstractMojoWriter {
 
     @Override
     public int nfeatures() {
-      return _finalModel.nfeatures();
+      return isSupervised() ? columnNames().length - 1 : columnNames().length;
     }
 
     @Override
