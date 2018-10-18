@@ -20,7 +20,7 @@ public interface ModelDescriptor {
 
   int nclasses();
 
-  String[] outputNames();
+  String[] columnNames();
 
   boolean balanceClasses();
 

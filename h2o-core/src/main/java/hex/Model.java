@@ -2491,7 +2491,7 @@ public abstract class Model<M extends Model<M,P,O>, P extends Model.Parameters, 
       @Override
       public int nclasses() { return _output.nclasses(); }
       @Override
-      public String[] outputNames() { return _output._names; }
+      public String[] columnNames() { return _output._names; }
       @Override
       public boolean balanceClasses() { return _parms._balance_classes; }
       @Override

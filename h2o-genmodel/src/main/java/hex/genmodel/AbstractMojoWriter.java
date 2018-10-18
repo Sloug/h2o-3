@@ -165,7 +165,7 @@ public abstract class AbstractMojoWriter {
     writekv("supervised", model.isSupervised());
     writekv("n_features", model.nfeatures());
     writekv("n_classes", model.nclasses());
-    writekv("n_columns", model.outputNames().length);
+    writekv("n_columns", model.columnNames().length);
     writekv("n_domains", n_categoricals);
     writekv("balance_classes", model.balanceClasses());
     writekv("default_threshold", model.defaultThreshold());
@@ -206,7 +206,7 @@ public abstract class AbstractMojoWriter {
     }
 
     writeln("\n[columns]");
-    for (String name : model.outputNames()) {
+    for (String name : model.columnNames()) {
       writeln(name);
     }
 
