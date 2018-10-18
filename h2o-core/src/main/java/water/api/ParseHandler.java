@@ -32,9 +32,11 @@ class ParseHandler extends Handler {
     if (setup.getParseType().name().equals("SVMLight") && ((setup.getSkippedColumns() != null) && (setup.getSkippedColumns().length >0)))
       throw new H2OIllegalArgumentException("Parser: skipped_columns are not supported for SVMlight parser.");
 
-    if (((setup.getSkippedColumns() != null) && (setup.get_parse_columns_indices()==null || setup.get_parse_columns_indices().length==0)) ||
-            ((setup.getSkippedColumns() != null) && (setup.getSkippedColumns().length >= setup.getNumberColumns())))
-      throw new H2OIllegalArgumentException("Parser: all columns in the file are skipped and no H2OFrame can be returned.");
+    if ((setup.getSkippedColumns() !=null &&
+            ((setup.get_parse_columns_indices()==null) || (setup.get_parse_columns_indices().length==0))
+            && (setup.getColumnNames()!= null)))
+      throw new H2OIllegalArgumentException("Parser:  all columns in the file are skipped and no H2OFrame" +
+              " can be returned."); // Need this to send error message to R
 
     parse.job = new JobV3(ParseDataset.parse(
             parse.destination_frame.key(), srcs, parse.delete_on_done, setup, parse.blocking

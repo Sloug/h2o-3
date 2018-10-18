@@ -934,8 +934,9 @@ public final class ParseDataset {
                 (_setup.getSkippedColumns().length >0)))
         throw new H2OIllegalArgumentException("Parser: skipped_columns are not supported for SVMlight parser.");
 
-        if ((_setup.getSkippedColumns() !=null && _setup.get_parse_columns_indices()==null) ||
-                (_setup.getSkippedColumns() !=null && _setup.getSkippedColumns().length >= _setup.getNumberColumns()))
+        if ((_setup.getSkippedColumns() !=null &&
+                ((_setup.get_parse_columns_indices()==null) || (_setup.get_parse_columns_indices().length==0))
+        && (_setup.getColumnNames()!= null)))
           throw new H2OIllegalArgumentException("Parser:  all columns in the file are skipped and no H2OFrame" +
                   " can be returned."); // Need this to send error message to R
 

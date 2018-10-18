@@ -78,7 +78,8 @@ public abstract class Parser extends Iced {
         _keepColumns[colIdx] = true;
       if (_setup._skipped_columns!=null) {
         for (int colIdx : _setup._skipped_columns)
-          _keepColumns[colIdx] = false;
+          if (colIdx < _setup._number_columns)
+            _keepColumns[colIdx] = false;
       }
     }
   }
