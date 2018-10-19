@@ -24,47 +24,18 @@ public class MojoPipelineWriterTest {
 
   @Test
   public void testAnything() throws IOException, PredictException {
-    LinkedHashMap<String, String> files = new LinkedHashMap<>();
-    files.put("clustering", "/Users/mkurka/mojos/kmeans_model.zip");
-    files.put("glm", "/Users/mkurka/mojos/glm_model.zip");
-
-    MojoModel kmeans = MojoModel.load(files.get("clustering"));
-    MojoModel glm = MojoModel.load(files.get("glm"));
-
-    Map<String, MojoModel> models = new HashMap<>();
-    models.put("clustering", kmeans);
-    models.put("glm", glm);
-
-    Map<String, String> mapping = Collections.singletonMap("CLUSTER", "clustering:0");
-
-    MojoPipelineWriter w = new MojoPipelineWriter(models, mapping, "glm");
-
     File mojoZipFile = tmp.newFile("mojo-pipeline.zip");
-    try (FileOutputStream fos = new FileOutputStream(mojoZipFile);
-         ZipOutputStream zos = new ZipOutputStream(fos)) {
-      w.writeTo(zos);
-      for (Map.Entry<String, String> mojoFile : files.entrySet()) {
-        ZipFile zf = new ZipFile(mojoFile.getValue());
-        Enumeration<? extends ZipEntry> entries = zf.entries();
-        while (entries.hasMoreElements()) {
-          ZipEntry ze = entries.nextElement();
 
-          ZipEntry copy = new ZipEntry("models/" + mojoFile.getKey() + "/" + ze.getName());
-          if (copy.getSize() >= 0) {
-            copy.setSize(copy.getSize());
-          }
-          copy.setTime(copy.getTime());
-          zos.putNextEntry(copy);
-          try (InputStream input = zf.getInputStream(zf.getEntry(ze.getName()))) {
-            copyStream(input, zos);
-          }
-          zos.closeEntry();
-        }
-      }
-    }
+    MojoPipelineBuilder builder = new MojoPipelineBuilder();
+    builder
+            .addModel("clustering", new File("/Users/mkurka/mojos/kmeans_model.zip"))
+            .addMapping("CLUSTER", "clustering", 0)
+            .addMainModel("glm", new File("/Users/mkurka/mojos/glm_model.zip"))
+            .buildPipeline(mojoZipFile);
 
     MojoModel mojoPipeline = MojoModel.load(mojoZipFile.getAbsolutePath());
     EasyPredictModelWrapper mojoPipelineWr = new EasyPredictModelWrapper(mojoPipeline);
+
     RowData rd = new RowData();
     rd.put("AGE", 71.0);
     rd.put("RACE", "1");
@@ -79,16 +50,5 @@ public class MojoPipelineWriterTest {
 
     IOUtils.copyFile(mojoZipFile, new File("/Users/mkurka/mojos/mojo-pipeline.zip"));
   }
-
-  private static void copyStream(InputStream source, OutputStream target) throws IOException {
-    byte[] buffer = new byte[8 * 1024];
-    while (true) {
-      int len = source.read(buffer);
-      if (len == -1)
-        break;
-      target.write(buffer, 0, len);
-    }
-  }
-
 
 }

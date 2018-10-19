@@ -14,7 +14,7 @@ public class MojoPipelineWriter extends AbstractMojoWriter {
   private Map<String, String> _inputMapping;
   private String _mainModelAlias;
 
-  public MojoPipelineWriter(Map<String, MojoModel> models, Map<String, String> inputMapping, String mainModelAlias) {
+  MojoPipelineWriter(Map<String, MojoModel> models, Map<String, String> inputMapping, String mainModelAlias) {
     super(makePipelineDescriptor(models, inputMapping, mainModelAlias));
     _models = models;
     _inputMapping = inputMapping;
