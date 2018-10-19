@@ -35,6 +35,16 @@ public class MojoPipelineWriter extends AbstractMojoWriter {
       writekv("submodel_dir_" + modelNum, "models/" + model.getKey() + "/");
       modelNum++;
     }
+    writekv("generated_column_count", _inputMapping.size());
+    int generatedColumnNum = 0;
+    for (Map.Entry<String, String> mapping : _inputMapping.entrySet()) {
+      String inputSpec = mapping.getValue();
+      String[] inputSpecArr = inputSpec.split(":", 2);
+      writekv("generated_column_name_" + generatedColumnNum, mapping.getKey());
+      writekv("generated_column_model_" + generatedColumnNum, inputSpecArr[0]);
+      writekv("generated_column_index_" + generatedColumnNum, Integer.valueOf(inputSpecArr[1]));
+      generatedColumnNum++;
+    }
     writekv("main_model", _mainModelAlias);
   }
 

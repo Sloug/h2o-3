@@ -35,7 +35,7 @@ public class MojoPipelineWriterTest {
     models.put("clustering", kmeans);
     models.put("glm", glm);
 
-    Map<String, String> mapping = Collections.singletonMap("CLUSTER", "clustering.P");
+    Map<String, String> mapping = Collections.singletonMap("CLUSTER", "clustering:0");
 
     MojoPipelineWriter w = new MojoPipelineWriter(models, mapping, "glm");
 
