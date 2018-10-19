@@ -77,10 +77,6 @@ public class MojoPipelineWriterTest {
     RegressionModelPrediction p = (RegressionModelPrediction) mojoPipelineWr.predict(rd);
 
     IOUtils.copyFile(mojoZipFile, new File("/Users/mkurka/mojos/mojo-pipeline.zip"));
-
-
-
-    System.out.println(mojoZipFile.getAbsolutePath());
   }
 
   private static void copyStream(InputStream source, OutputStream target) throws IOException {
