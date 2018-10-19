@@ -75,6 +75,7 @@ public class MojoPipelineWriterTest {
     rd.put("GLEASON", 8.0);
 
     RegressionModelPrediction p = (RegressionModelPrediction) mojoPipelineWr.predict(rd);
+    System.out.println(p.value);
 
     IOUtils.copyFile(mojoZipFile, new File("/Users/mkurka/mojos/mojo-pipeline.zip"));
   }

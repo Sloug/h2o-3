@@ -4,7 +4,10 @@ import hex.genmodel.MojoModel;
 import hex.genmodel.MultiModelMojoReader;
 
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.List;
+import java.util.HashMap;
 
 public class MojoPipelineReader extends MultiModelMojoReader<MojoPipeline> {
 
@@ -16,9 +19,12 @@ public class MojoPipelineReader extends MultiModelMojoReader<MojoPipeline> {
   @Override
   protected void readParentModelData() throws IOException {
     String mainModelAlias = readkv("main_model");
+    String[] generatedColumns = readGeneratedColumns();
 
     _model._mainModel = getModel(mainModelAlias);
-    _model._inputMapping = findIndices(_model._names, _model._mainModel._names, readGeneratedColumns());
+    _model._inputMapping = findIndices(_model._names, _model._mainModel._names, _model._mainModel._nfeatures, generatedColumns);
+
+    Map<String, List<Integer>> m2idxs = readModel2GeneratedColumnIndex();
 
     _model._models = new MojoPipeline.PipelineSubModel[getSubModels().size() - 1];
     int modelsCnt = 0;
@@ -26,15 +32,39 @@ public class MojoPipelineReader extends MultiModelMojoReader<MojoPipeline> {
       if (mainModelAlias.equals(subModel.getKey())) {
         continue;
       }
-      MojoModel m = subModel.getValue();
+      final MojoModel m = subModel.getValue();
+      final List<Integer> generatedColsIdxs = m2idxs.get(subModel.getKey());
+
       MojoPipeline.PipelineSubModel psm = _model._models[modelsCnt++] = new MojoPipeline.PipelineSubModel();
-      psm._inputMapping = findIndices(_model._names, m._names, new String[0]);
-      psm._predsSize = m.getPredsSize(m.getModelCategory());
-      psm._sourcePredsIndices = new int[0]; // FIXME
-      psm._targetRowIndices = new int[0];
       psm._mojoModel = m;
+      psm._inputMapping = findIndices(_model._names, m._names, m._nfeatures, new String[0]);
+      psm._predsSize = m.getPredsSize(m.getModelCategory());
+      psm._sourcePredsIndices = new int[generatedColsIdxs.size()]; // FIXME
+      String[] targetColNames = new String[generatedColsIdxs.size()];
+      int t = 0;
+      for (int i : generatedColsIdxs) {
+        psm._sourcePredsIndices[t] = readkv("generated_column_index_" + i, 0);
+        targetColNames[t] = readkv("generated_column_name_" + i, "");
+        t++;
+      }
+      psm._targetRowIndices = findIndices(_model._mainModel._names, targetColNames, targetColNames.length, new String[0]);
+      _model._outputMappingLength += t;
     }
     assert modelsCnt == _model._models.length;
+  }
+
+  private Map<String, List<Integer>> readModel2GeneratedColumnIndex() {
+    final int cnt = readkv("generated_column_count", 0);
+    Map<String, List<Integer>> map = new HashMap<>(cnt);
+    for (int i = 0; i < cnt; i++) {
+      String alias = readkv("generated_column_model_" + i);
+      if (! map.containsKey(alias)) {
+        map.put(alias, new LinkedList<Integer>());
+      }
+      List<Integer> indices = map.get(alias);
+      indices.add(i);
+    }
+    return map;
   }
 
   private String[] readGeneratedColumns() {
@@ -51,10 +81,10 @@ public class MojoPipelineReader extends MultiModelMojoReader<MojoPipeline> {
     return new MojoPipeline(columns, domains, responseColumn);
   }
 
-  private static int[] findIndices(String[] strings, String[] subset, String[] ignored) {
-    final int[] idx = new int[subset.length - ignored.length];
+  private static int[] findIndices(String[] strings, String[] subset, int firstN, String[] ignored) {
+    final int[] idx = new int[firstN - ignored.length];
     int cnt = 0;
-    outer: for (int i = 0; i < idx.length; i++) {
+    outer: for (int i = 0; i < firstN; i++) {
       final String s = subset[i];
       assert s != null;
       for (String si : ignored) {
@@ -70,6 +100,7 @@ public class MojoPipelineReader extends MultiModelMojoReader<MojoPipeline> {
       }
       throw new IllegalStateException("Pipeline doesn't have input column '" + subset[i] + "'.");
     }
+    assert cnt == idx.length;
     return idx;
   }
 

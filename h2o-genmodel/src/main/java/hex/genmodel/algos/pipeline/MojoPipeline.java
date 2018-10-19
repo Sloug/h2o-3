@@ -3,14 +3,12 @@ package hex.genmodel.algos.pipeline;
 import hex.genmodel.MojoModel;
 
 import java.io.Serializable;
-import java.util.Arrays;
 
 public class MojoPipeline extends MojoModel {
 
   MojoModel _mainModel;
   int[] _inputMapping;
   int _outputMappingLength;
-
 
   PipelineSubModel[] _models;
 
@@ -25,6 +23,7 @@ public class MojoPipeline extends MojoModel {
       mainInputRow[i] = row[_inputMapping[i]];
     }
 
+    // score sub-models and populate generated fields of the main-model input row
     for (PipelineSubModel psm : _models) {
       double[] rowSubset = new double[psm._inputMapping.length];
       for (int i = 0; i < psm._inputMapping.length; i++) {
@@ -32,7 +31,6 @@ public class MojoPipeline extends MojoModel {
       }
       double[] subModelPreds = new double[psm._predsSize];
       subModelPreds = psm._mojoModel.score0(rowSubset, subModelPreds);
-      System.out.println(Arrays.toString(subModelPreds));
       for (int j = 0; j < psm._sourcePredsIndices.length; j++) {
         mainInputRow[psm._targetRowIndices[j]] = subModelPreds[psm._sourcePredsIndices[j]];
       }
