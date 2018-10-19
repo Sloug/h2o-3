@@ -7,8 +7,9 @@ import java.io.Serializable;
 public class MojoPipeline extends MojoModel {
 
   MojoModel _mainModel;
-  int[] _inputMapping;
-  int _outputMappingLength;
+  int[] _sourceRowIndices;
+  int[] _targetMainModelRowIndices;
+  int _generatedColumnCount;
 
   PipelineSubModel[] _models;
 
@@ -18,25 +19,25 @@ public class MojoPipeline extends MojoModel {
 
   @Override
   public double[] score0(double[] row, double[] preds) {
-    double[] mainInputRow = new double[_inputMapping.length + _outputMappingLength];
-    for (int i = 0; i < _inputMapping.length; i++) {
-      mainInputRow[i] = row[_inputMapping[i]];
+    double[] mainModelRow = new double[_targetMainModelRowIndices.length + _generatedColumnCount];
+    for (int i = 0; i < _targetMainModelRowIndices.length; i++) {
+      mainModelRow[_targetMainModelRowIndices[i]] = row[_sourceRowIndices[i]];
     }
 
     // score sub-models and populate generated fields of the main-model input row
     for (PipelineSubModel psm : _models) {
-      double[] rowSubset = new double[psm._inputMapping.length];
+      double[] subModelRow = new double[psm._inputMapping.length];
       for (int i = 0; i < psm._inputMapping.length; i++) {
-        rowSubset[i] = row[psm._inputMapping[i]];
+        subModelRow[i] = row[psm._inputMapping[i]];
       }
       double[] subModelPreds = new double[psm._predsSize];
-      subModelPreds = psm._mojoModel.score0(rowSubset, subModelPreds);
+      subModelPreds = psm._mojoModel.score0(subModelRow, subModelPreds);
       for (int j = 0; j < psm._sourcePredsIndices.length; j++) {
-        mainInputRow[psm._targetRowIndices[j]] = subModelPreds[psm._sourcePredsIndices[j]];
+        mainModelRow[psm._targetRowIndices[j]] = subModelPreds[psm._sourcePredsIndices[j]];
       }
     }
 
-    return _mainModel.score0(mainInputRow, preds);
+    return _mainModel.score0(mainModelRow, preds);
   }
 
   static class PipelineSubModel implements Serializable {

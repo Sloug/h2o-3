@@ -3,7 +3,6 @@ package hex.genmodel.algos.pipeline;
 import hex.genmodel.MojoModel;
 import hex.genmodel.MultiModelMojoReader;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.List;
@@ -17,17 +16,21 @@ public class MojoPipelineReader extends MultiModelMojoReader<MojoPipeline> {
   }
 
   @Override
-  protected void readParentModelData() throws IOException {
+  protected void readParentModelData() {
     String mainModelAlias = readkv("main_model");
     String[] generatedColumns = readGeneratedColumns();
 
     _model._mainModel = getModel(mainModelAlias);
-    _model._inputMapping = findIndices(_model._names, _model._mainModel._names, _model._mainModel._nfeatures, generatedColumns);
+    _model._generatedColumnCount = generatedColumns.length;
+    _model._targetMainModelRowIndices = new int[_model._mainModel._nfeatures - generatedColumns.length];
+    _model._sourceRowIndices = findIndices(_model._names, _model._mainModel._names, _model._mainModel._nfeatures,
+            _model._targetMainModelRowIndices, generatedColumns);
 
     Map<String, List<Integer>> m2idxs = readModel2GeneratedColumnIndex();
 
     _model._models = new MojoPipeline.PipelineSubModel[getSubModels().size() - 1];
     int modelsCnt = 0;
+    int genColsCnt = 0;
     for (Map.Entry<String, MojoModel> subModel : getSubModels().entrySet()) {
       if (mainModelAlias.equals(subModel.getKey())) {
         continue;
@@ -37,9 +40,9 @@ public class MojoPipelineReader extends MultiModelMojoReader<MojoPipeline> {
 
       MojoPipeline.PipelineSubModel psm = _model._models[modelsCnt++] = new MojoPipeline.PipelineSubModel();
       psm._mojoModel = m;
-      psm._inputMapping = findIndices(_model._names, m._names, m._nfeatures, new String[0]);
+      psm._inputMapping = mapModelColumns(m);
       psm._predsSize = m.getPredsSize(m.getModelCategory());
-      psm._sourcePredsIndices = new int[generatedColsIdxs.size()]; // FIXME
+      psm._sourcePredsIndices = new int[generatedColsIdxs.size()];
       String[] targetColNames = new String[generatedColsIdxs.size()];
       int t = 0;
       for (int i : generatedColsIdxs) {
@@ -47,10 +50,11 @@ public class MojoPipelineReader extends MultiModelMojoReader<MojoPipeline> {
         targetColNames[t] = readkv("generated_column_name_" + i, "");
         t++;
       }
-      psm._targetRowIndices = findIndices(_model._mainModel._names, targetColNames, targetColNames.length, new String[0]);
-      _model._outputMappingLength += t;
+      psm._targetRowIndices = findIndices(_model._mainModel._names, targetColNames);
+      genColsCnt += t;
     }
     assert modelsCnt == _model._models.length;
+    assert genColsCnt == _model._generatedColumnCount;
   }
 
   private Map<String, List<Integer>> readModel2GeneratedColumnIndex() {
@@ -81,8 +85,17 @@ public class MojoPipelineReader extends MultiModelMojoReader<MojoPipeline> {
     return new MojoPipeline(columns, domains, responseColumn);
   }
 
-  private static int[] findIndices(String[] strings, String[] subset, int firstN, String[] ignored) {
+  private int[] mapModelColumns(MojoModel subModel) {
+    return findIndices(_model._names, subModel._names, subModel._nfeatures, null, new String[0]);
+  }
+
+  private static int[] findIndices(String[] strings, String[] subset) {
+    return findIndices(strings, subset, subset.length, null, new String[0]);
+  }
+
+  private static int[] findIndices(String[] strings, String[] subset, int firstN, int[] outSubsetIdxs, String[] ignored) {
     final int[] idx = new int[firstN - ignored.length];
+    assert outSubsetIdxs == null || outSubsetIdxs.length == idx.length;
     int cnt = 0;
     outer: for (int i = 0; i < firstN; i++) {
       final String s = subset[i];
@@ -94,6 +107,9 @@ public class MojoPipelineReader extends MultiModelMojoReader<MojoPipeline> {
       }
       for (int j = 0; j < strings.length; j++) {
         if (s.equals(strings[j])) {
+          if (outSubsetIdxs != null) {
+            outSubsetIdxs[cnt] = i;
+          }
           idx[cnt++] = j;
           continue outer;
         }
