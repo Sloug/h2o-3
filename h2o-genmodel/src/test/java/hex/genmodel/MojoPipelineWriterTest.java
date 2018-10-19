@@ -10,10 +10,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.*;
-import java.util.*;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
 
 import static org.junit.Assert.*;
 
@@ -30,7 +26,7 @@ public class MojoPipelineWriterTest {
     builder
             .addModel("clustering", new File("/Users/mkurka/mojos/kmeans_model.zip"))
             .addMapping("CLUSTER", "clustering", 0)
-            .addMainModel("glm", new File("/Users/mkurka/mojos/glm_model.zip"))
+            .addMainModel("regression", new File("/Users/mkurka/mojos/glm_model.zip"))
             .buildPipeline(mojoZipFile);
 
     MojoModel mojoPipeline = MojoModel.load(mojoZipFile.getAbsolutePath());
@@ -46,7 +42,7 @@ public class MojoPipelineWriterTest {
     rd.put("GLEASON", 8.0);
 
     RegressionModelPrediction p = (RegressionModelPrediction) mojoPipelineWr.predict(rd);
-    System.out.println(p.value);
+    assertEquals(0.7812266, p.value, 1e-7);
 
     IOUtils.copyFile(mojoZipFile, new File("/Users/mkurka/mojos/mojo-pipeline.zip"));
   }
